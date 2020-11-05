@@ -4,7 +4,7 @@ import argparse
 import collections
 from Bio.Seq import Seq
 from Bio import SeqIO
-from Bio.Alphabet import IUPAC
+#from Bio.Alphabet import IUPAC
 from Bio.SeqRecord import SeqRecord
 MafRecord = collections.namedtuple(
     'MafRecord', ['seq_name', 'start', 'size', 'strand', 'seq_size', 'body'])
@@ -50,11 +50,11 @@ def print_all_maf(handle, alignment):
 
 
 def profile(group, column):
-    return [group[i].body[column] == '-' for i in xrange(len(group))]
+    return [group[i].body[column] == '-' for i in range(len(group))]
 
 
 def slice(group, column_start, column_end, pos, shift):
-    return [MafRecord(seq_name=group[i].seq_name, start=pos[i] + shift, size=column_end - column_start, strand=group[i].strand, seq_size=group[i].seq_size, body=group[i].body[column_start:column_end]) for i in xrange(len(group)) if group[i].body[column_start] != '-']
+    return [MafRecord(seq_name=group[i].seq_name, start=pos[i] + shift, size=column_end - column_start, strand=group[i].strand, seq_size=group[i].seq_size, body=group[i].body[column_start:column_end]) for i in range(len(group)) if group[i].body[column_start] != '-']
 
 
 def is_homogeneous(group, column):
@@ -79,7 +79,7 @@ def decompose_column(group, blocks):
 
 def split_range(group, column_start, column_end, pos, blocks):
     origin = column_start
-    for i in xrange(column_start, column_end):
+    for i in range(column_start, column_end):
         if not is_homogeneous(group, i):
             if column_start < i:
                 blocks.append(slice(group, column_start, i,
@@ -111,10 +111,10 @@ def split_maf_blocks(maf_file):
         prev_column = 0
         while prev_column < len(maf[0].body):
             next_column = prev_column
-            pos_inc = [0 for _ in xrange(len(pos))]
+            pos_inc = [0 for _ in range(len(pos))]
             while next_column < len(maf[0].body):
                 next_profile = profile(maf, next_column)
-                for i in xrange(len(pos)):
+                for i in range(len(pos)):
                     pos_inc[i] += 0 if maf[i].body[next_column] == '-' else 1
                 if next_profile == prev_profile:
                     next_column += 1
@@ -123,7 +123,7 @@ def split_maf_blocks(maf_file):
                     break
 
             split_range(maf, prev_column, next_column, pos, blocks)
-            for i in xrange(len(pos)):
+            for i in range(len(pos)):
                 pos[i] += pos_inc[i] - (0 if next_column < len(maf[0].body)
                                         and maf[i].body[next_column] == '-' else 1)
             prev_column = next_column
@@ -138,14 +138,14 @@ def get_uncovered_blocks(fasta, blocks, sequence):
     for fasta_file in fasta:
         for record in SeqIO.parse(fasta_file, "fasta"):
             sequence_record[record.id] = record
-            covered[record.id] = [False for _ in xrange(len(record.seq))]
+            covered[record.id] = [False for _ in range(len(record.seq))]
             if record.id not in sequence:
                 sequence[record.id] = []
 
-    for b in xrange(len(blocks)):
+    for b in range(len(blocks)):
         for record in blocks[b]:
             sequence[record.seq_name].append((pos_start(record), b, record))
-            for i in xrange(pos_start(record), pos_start(record) + record.size):
+            for i in range(pos_start(record), pos_start(record) + record.size):
                 covered[record.seq_name][i] = True
 
     for seq_id, cov in covered.items():
@@ -171,7 +171,7 @@ def blocks_debug_output(blocks):
 
 def output_block(b, remember_block):
     if b not in remember_block:
-        print "S\t" + str(b + 1) + "\t" + blocks[b][0].body
+        print ("S\t" + str(b + 1) + "\t" + blocks[b][0].body)
         remember_block.add(b)
 
 
@@ -186,11 +186,11 @@ def output_link(a, b, remember_block, remember_link):
         if link not in remember_link:
             id = len(remember_link)
             remember_link[link] = id
-            print "\t".join(("L", str(block1 + 1), record1.strand,
-                             str(block2 + 1), record2.strand, "*"))
+            print ("\t".join(("L", str(block1 + 1), record1.strand,
+                             str(block2 + 1), record2.strand, "*")))
         id = remember_link[link]
     else:
-        print "FAIL", start1, record1.size, start2
+        print ("FAIL", start1, record1.size, start2)
 
 
 parser = argparse.ArgumentParser(description='A helper script for covnerting MAF produced by SibeliaZ to GFA1.',
@@ -207,12 +207,12 @@ get_uncovered_blocks(args.fasta, blocks, sequence)
 remember_block = set()
 remember_link = dict()
 
-print "H\tVN:Z:1.0"
+print ("H\tVN:Z:1.0")
 
 for header, blocks_seq in sequence.items():
     blocks_seq.sort()
-    for i in xrange(0, len(blocks_seq) - 1):
+    for i in range(0, len(blocks_seq) - 1):
         output_link(blocks_seq[i], blocks_seq[i + 1],
                     remember_block, remember_link)
-    print "P\t" + header + "\t" + \
-        ','.join((str(block[1] + 1) + block[2].strand for block in blocks_seq))
+    print ("P\t" + header + "\t" + \
+        ','.join((str(block[1] + 1) + block[2].strand for block in blocks_seq)))
